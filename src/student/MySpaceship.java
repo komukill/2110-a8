@@ -8,8 +8,14 @@ import models.NodeStatus;
 import controllers.SearchPhase;
 import controllers.RescuePhase;
 
+import java.util.Arrays;
+import java.util.HashSet;
+
 /** An instance implements the methods needed to complete the mission. */
 public class MySpaceship implements Spaceship {
+
+	HashSet<Integer> visited = new HashSet<Integer>(); //set of visited planets
+	boolean found = false;
 
 	/** The spaceship is on the location given by parameter state.
 	 * Move the spaceship to Planet X and then return (with the spaceship is on
@@ -38,7 +44,70 @@ public class MySpaceship implements Spaceship {
 	@Override
 	public void search(SearchPhase state) {
 		// TODO: Find the missing spaceship
+		search3(state);
 	}
+
+	/* This is a helper method for search() 
+	 * 
+	 * The spaceship is on the location given by parameter state.
+	 * Move the spaceship to Planet X and then return (with the spaceship 
+	 * is on Planet X).
+	 * 
+	 * Visit every planet reachable along paths of unvisited planets from 
+	 * here using dfs algorithm by always choosing the neighbor with 
+	 * the strongest signal. End with the spaceship on PlanetX.
+	 * Precondition: this state's planet is unvisited.
+	 */
+	public void search1(SearchPhase state) {
+		int u = state.currentID();
+		visited.add(u);
+		if (state.onPlanetX()) {
+			found = true;
+			return;
+		}
+		for(NodeStatus n: state.neighbors()) {
+			if (!visited.contains(n.id()) && !found) {
+				state.moveTo(n.id());
+				search1(state);
+				if (!found) state.moveTo(u);
+			}
+		}
+	}
+	
+	public void search2(SearchPhase state) {
+		int u = state.currentID();
+		visited.add(u);
+		if (state.onPlanetX()) return;
+		Heap<Integer> strength = new Heap<Integer>(false); // max-heap that stores id, sorted based on strength
+		for (NodeStatus n: state.neighbors()) {
+			strength.add(n.id(), n.signal());
+		}
+		return;
+	}
+	
+	
+	// why is it not sorting (before after sort gives the same map)
+	public void search3(SearchPhase state) {
+		int u = state.currentID();
+		visited.add(u);
+		if (state.onPlanetX()) {
+			found = true;
+			return;
+		}
+
+		Arrays.sort(state.neighbors());
+		
+		for(NodeStatus n: state.neighbors()) {
+			if (!visited.contains(n.id()) && !found) {
+				System.out.println(n.signal());
+				state.moveTo(n.id());
+				search3(state);
+				if (!found) state.moveTo(u);
+			}
+		}
+	}
+
+	
 
 	/** The spaceship is on the location given by state. Get back to Earth
 	 * without running out of fuel and return while on Earth. Your ship can
