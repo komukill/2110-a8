@@ -49,6 +49,8 @@ public class MySpaceship implements Spaceship {
 
 	/* This is a helper method for search() 
 	 * 
+	 * Return when state is on Planet X and variable found is true;
+	 * 
 	 * The spaceship is on the location given by parameter state.
 	 * Move the spaceship to Planet X and then return (with the spaceship 
 	 * is on Planet X).
@@ -87,6 +89,7 @@ public class MySpaceship implements Spaceship {
 	
 	
 	// why is it not sorting (before after sort gives the same map)
+	// what is optimization?
 	public void search3(SearchPhase state) {
 		int u = state.currentID();
 		visited.add(u);
@@ -94,13 +97,19 @@ public class MySpaceship implements Spaceship {
 			found = true;
 			return;
 		}
-
-		Arrays.sort(state.neighbors());
 		
-		for(NodeStatus n: state.neighbors()) {
-			if (!visited.contains(n.id()) && !found) {
-				System.out.println(n.signal());
-				state.moveTo(n.id());
+		NodeStatus[] ne = state.neighbors();
+		Arrays.sort(ne);
+		
+		for (int i = ne.length-1; i>=0; i--) {
+			System.out.println(ne[i].signal());
+		}
+		System.out.println("\n\nnew level");
+		
+		for(int i = ne.length-1; i>=0; i--) {
+			if (!visited.contains(ne[i].id()) && !found) {
+				//System.out.println(n.signal());
+				state.moveTo(ne[i].id());
 				search3(state);
 				if (!found) state.moveTo(u);
 			}
