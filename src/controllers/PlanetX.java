@@ -181,7 +181,7 @@ public class PlanetX implements Controller {
 	 *                  of your solution when run on multiple seeds
 	 * -q, --quiet      Use a quiet view, which outputs nothing. */
 	public static void main(String[] argv) {
-		// parse arguments
+		// parse arguments 
 		View view= null;
 		Long seed= null;
 		for (int i= 0; i < argv.length; ++i) {

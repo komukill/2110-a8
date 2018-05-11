@@ -12,7 +12,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 /** An instance implements the methods needed to complete the mission. */
 public class MySpaceship implements Spaceship {
@@ -51,8 +50,8 @@ public class MySpaceship implements Spaceship {
 		// TODO: Find the missing spaceship
 		signalSearch(state);
 	}
-	
-	/* This is a helper method for search() 
+
+	/** This is a helper method for search() 
 	 * 
 	 * Return when state is on Planet X and variable found is true;
 	 * 
@@ -79,8 +78,8 @@ public class MySpaceship implements Spaceship {
 			}
 		}
 	}
-	
-	/* This is a helper method for search() 
+
+	/** This is a helper method for search() 
 	 * 
 	 * Return when state is on Planet X and variable found is true;
 	 * 
@@ -100,10 +99,10 @@ public class MySpaceship implements Spaceship {
 			found = true;
 			return;
 		}
-		
+
 		NodeStatus[] ne = state.neighbors();
 		Arrays.sort(ne);
-		
+
 		for(int i = ne.length-1; i>=0; i--) {
 			if (!visited.contains(ne[i].id()) && !found) {
 				state.moveTo(ne[i].id());
@@ -113,7 +112,7 @@ public class MySpaceship implements Spaceship {
 		}
 	}
 
-	
+
 
 	/** The spaceship is on the location given by state. Get back to Earth
 	 * without running out of fuel and return while on Earth. Your ship can
@@ -134,10 +133,12 @@ public class MySpaceship implements Spaceship {
 	@Override
 	public void rescue(RescuePhase state) {
 		// TODO: Complete the rescue mission and collect gems
-		rescueWithGems(state);
+		rescue3(state);
 	}
-	
-	/** The spaceship is on the location given by state. Get back to Earth
+
+	/** This is a helper method for rescue(RescuePhase state)
+	 * 
+	 * The spaceship is on the location given by state. Get back to Earth
 	 * without running out of fuel and return while on Earth. 
 	 * 
 	 * Uses Dijkstra's shortest path algorithm to determine the shortest path
@@ -145,13 +146,15 @@ public class MySpaceship implements Spaceship {
 	 */
 	public void rescue1(RescuePhase state) {
 		List<Node> path = Paths.minPath(state.currentNode(), state.earth());
-		
+
 		for(Node n: path) {
 			if (n != state.currentNode()) state.moveTo(n);
 		}
 	}
 
-	/** The spaceship is on the location given by state. Get back to Earth
+	/** This is a helper method for rescue(RescuePhase state) 
+	 * 
+	 * The spaceship is on the location given by state. Get back to Earth
 	 * without running out of fuel and return while on Earth. 
 	 * 
 	 * Uses Dijkstra's shortest path algorithm to determine the shortest path
@@ -161,11 +164,11 @@ public class MySpaceship implements Spaceship {
 	 * 
 	 */
 	public void rescue2(RescuePhase state) {
-		
+
 		if (state.currentNode() == state.earth()) return;
-		
+
 		Heap<Node> maxGemHeap = new Heap<Node>(false);
-		
+
 		for(Edge e: state.currentNode().getExits()) {
 			Node n = e.getOther(state.currentNode());
 			List<Node> path = Paths.minPath(n, state.earth());
@@ -185,194 +188,81 @@ public class MySpaceship implements Spaceship {
 		state.moveTo(best);
 		rescue2(state);
 	}
+
 	
-	
-	// do this with something not Dijkstra
+	/** This is a helper method for rescue(RescuePhase state)
+	 * 
+	 * The spaceship is on the location given by state. Get back to Earth
+	 * without running out of fuel and return while on Earth. 
+	 * 
+	 * After each path, find the Dijkstra's shortest path to all planets
+	 * and find the gems that can be collected by following each path.
+	 * Follow the path with most gems, if the fuel allows. 
+	 * Return to earth if all paths require more fuel than remaining to 
+	 * follow and travel back to earth. 
+	 * 
+	 */
 	public void rescue3(RescuePhase state) {
-		
-		HashMap<Node, Integer> toEarth = new HashMap<Node, Integer>();
-		HashMap<Node, Integer> fromX = new HashMap<Node, Integer>();
-		
-		for(Node n: state.nodes()) {
-			List<Node> path = Paths.minPath(n, state.earth());
-			int estGems = 0;
-			for(Node p:path) {
-				estGems += p.gems();
+		boolean good = true;
+		while(good) {
+			Heap<Node> gemStat = new Heap<Node>(false);
+			HashMap<Node, Integer> fuelSet = new HashMap<Node, Integer>();
+			for(Node n: state.nodes()) {
+				List<Node> path = Paths.minPath(state.currentNode(), n);
+				int total = 0;
+				int estFuel = 0;
+				for(int i = 0; i < path.size()-1; i++) {
+					estFuel = estFuel + (path.get(i).getEdge(path.get(i+1))).length;
+					total = total + path.get(i).gems();
+				}
+				total = total + path.get(path.size()-1).gems();
+				gemStat.add(n, total);
+				fuelSet.put(n, estFuel);
 			}
-			toEarth.put(n, estGems);
-		}
-		
-		for(Node n: state.nodes()) {
-			List<Node> path = Paths.minPath(state.currentNode(),n);
-			int estGems = 0;
-			for(Node p:path) {
-				estGems += p.gems();
-			}
-			fromX.put(n, estGems);
-		}
-		
-		Heap<Node> connect = new Heap<Node>(false);
-		
-		for(Node n:state.nodes()) {
-			int totalGems = toEarth.get(n) + fromX.get(n);
-			connect.add(n, totalGems);
-		}
-		
-		Node best = connect.poll();
-		List<Node> pathFromX = Paths.minPath(state.currentNode(),best);
-		List<Node> pathToEarth = Paths.minPath(best, state.earth());
-		List<Node> path = pathFromX.subList(1, pathFromX.size()-1);
-		path.addAll(pathToEarth);
-		
-		int estFuel= 0;
-		for(int i = 0; i < path.size()-1; i++) {
-			estFuel = estFuel + (path.get(i).getEdge(path.get(i+1))).length;
-		}
-		
-		while(estFuel > state.fuelRemaining()) {
-			best = connect.poll();
-			pathFromX = Paths.minPath(state.currentNode(),best);
-			pathToEarth = Paths.minPath(best, state.earth());
-			path = pathFromX.subList(1, pathFromX.size()-1);
-			path.addAll(pathToEarth);
-			estFuel= 0;
-			for(int i = 0; i < path.size()-1; i++) {
-				estFuel = estFuel + (path.get(i).getEdge(path.get(i+1))).length;
-			}
-		}
-		
-		for(Node n:path) {
-			state.moveTo(n);
-		}
-	}
-	
-	public void rescue5(RescuePhase state) {
-		if (state.currentNode() == state.earth()) return;
-		List<Node> path = Paths.minPath(state.currentNode(), state.earth());
-		
-		previousPath = path;
-		int estFuel = 0;
-		
-		for(int i = 0; i < path.size()-1; i++) {
-			estFuel = estFuel + (path.get(i).getEdge(path.get(i+1))).length;
-		}
-		
-		//while (estFuel <= state.fuelRemaining())
-		for(Edge e: state.currentNode().getExits()) {
-			if (estFuel + 2*e.length <= state.fuelRemaining()) {
-				Node n = e.getOther(state.currentNode());
-				estFuel -= 2*e.length;
-				state.moveTo(n);
-				state.moveTo(path.get(0));
-			}
-		}
-		state.moveTo(path.get(1));
-		rescue5(state);
-	}
-	
-	
-	public void rescueWithGems(RescuePhase state) {
-		do {
-		} while (helper1(state)) ;
-		
-		List<Node> path = Paths.minPath(state.currentNode(), state.earth());
-		for(Node n: path.subList(1, path.size())) {
-			state.moveTo(n);
-		}
-		
-		checkNeighbors(state, state.earth());
-	}
-	
-	public boolean helper1(RescuePhase state) {
-		Heap<Node> gemStat = new Heap<Node>(false);
-		for(Node n: state.nodes()) {
-			gemStat.add(n, n.gems());
-		}
-		//boolean done = false;
-		Node richest = gemStat.poll();
-		if(calcFuel(state.currentNode(), richest) + fuelToEarth(state, richest) <= state.fuelRemaining()) {
-			if (followPath(state, richest)) {
-				checkNeighbors(state, richest);
-				return true;
-			}
-		}
-		/*if (!done) {
-			Node nextRich = gemStat.poll();
-			while(done || calcFuel(state.currentNode(), nextRich) + fuelToEarth(state, nextRich) > state.fuelRemaining())
-			if(calcFuel(state.currentNode(), nextRich) + fuelToEarth(state, nextRich) <= state.fuelRemaining()) {
-				done = followPath(state, nextRich);
-				nextRich = gemStat.poll();
-			}
-		}*/
-		
-		return false;
-	}
-	
-	public double efficiency(List<Node> path) {
-		int overlap = 0;
-		for(Node n: path.subList(1, path.size())) {
-			if (collected.contains(n)) overlap++;
-		}
-		return ((path.size() - overlap)/path.size()) * 100;
-	}
-	
-	public void checkNeighbors(RescuePhase state, Node g) {
-		HashMap<Node, Integer> neighborsMap = g.neighbors();
-		Set<Node> nodesSet = neighborsMap.keySet();
-		for(Node n: nodesSet) {		
-			if(calcFuel(g, n)*2 + fuelToEarth(state, n) <= state.fuelRemaining() && n.gems() != 0) {
-				state.moveTo(n);
-				state.moveTo(g);
-			}
-		}
-	}
-	
-	public boolean followPath(RescuePhase state, Node n) {
-		List<Node> path = Paths.minPath(state.currentNode(), n);
-		//if (efficiency(path) > 0.5)
-			for(Node node: path) {
-				if (state.currentNode() != node) {
-					if (!collected.contains(node)) collected.add(node);
-					state.moveTo(node);
+			Node b = gemStat.poll();
+			good = false;
+			while(b != state.currentNode() && !good) {
+				if(fuelSet.get(b) + fuel(b,state.earth()) > state.fuelRemaining()) {
+					b = gemStat.poll();
+				}else {
+					good = true;
 				}
 			}
-		return true;
-	}
-	
-	public boolean calcFuel2(RescuePhase state) {
-		List<Node> path = Paths.minPath(state.currentNode(), state.earth());
-		int estFuel = 0;
-		
-		for(int i = 0; i < path.size()-1; i++) {
-			estFuel = estFuel + (path.get(i).getEdge(path.get(i+1))).length;
+			if(good) {
+				n2m(state,b);	
+			}
 		}
-		return state.fuelRemaining() > estFuel;
+		n2m(state,state.earth());
+	}
+
+	/**This is a helper method for rescue3(RescuePhase state) 
+	 * 
+	 * Follow the Dijkstra's path from the current node state is in 
+	 * to node m. 
+	 * 
+	 */
+	public void n2m(RescuePhase state, Node m) {
+		Node n = state.currentNode();
+		List<Node> path = Paths.minPath(n, m);
+		for(Node i:path.subList(1, path.size())) {
+			state.moveTo(i);
+		}
 	}
 	
-	public int calcFuel(Node n1, Node n2) {
+	/**This is a helper method for rescue3(RescuePhase state)
+	 *  
+	 * Calculate and return the fuel needed to travel the Dijkstra's 
+	 * path from Node n1 to n2.  
+	 * 
+	 */
+	public int fuel(Node n1, Node n2) {
 		List<Node> path = Paths.minPath(n1, n2);
 		int estFuel = 0;
-		
 		for(int i = 0; i < path.size()-1; i++) {
 			estFuel = estFuel + (path.get(i).getEdge(path.get(i+1))).length;
 		}
 		return estFuel;
 	}
 	
-	public int fuelToEarth(RescuePhase state, Node n) {
-		List<Node> path = Paths.minPath(n, state.earth());
-		int estFuel = 0;
-		
-		for(int i = 0; i < path.size()-1; i++) {
-			estFuel = estFuel + (path.get(i).getEdge(path.get(i+1))).length;
-		}
-		return estFuel;
-	}
-	
-	//change above to dfs + other
-	
-	//fishbone 
-	
-	//visit planets with most gems every time. 
-	
+
 }
